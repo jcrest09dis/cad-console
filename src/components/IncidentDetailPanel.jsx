@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
-import { assignmentBadgeClass, assignmentStatusLabel } from '../statusStyles.js';
+import { assignmentBadgeClass, assignmentStatusLabel, unitBadgeClass, unitStatusLabel } from '../statusStyles.js';
+
+// Same progression the field app and UnitDetailPanel offer - a
+// dispatcher can set any of these directly (not just "next"), since
+// they have override authority, matching their existing ability to
+// cancel/complete assignments freely. Lets a dispatcher who's already
+// in this panel adding notes also move the unit along, without needing
+// to close this and separately click into the unit.
+const PROGRESSION_STATUSES = ['ENROUTE', 'ON_SCENE', 'TRANSPORTING', 'AT_DESTINATION'];
 
 export default function IncidentDetailPanel({
   incident,
@@ -48,6 +56,10 @@ export default function IncidentDetailPanel({
 
   function handleDispatcherAck() {
     withBusy(() => api.dispatcherAckAssignment(eventId, assignment.id));
+  }
+
+  function handleSetUnitStatus(status) {
+    withBusy(() => api.setUnitStatus(eventId, assignedUnit.id, status));
   }
 
   function handleCancelAssignment() {
@@ -132,6 +144,28 @@ export default function IncidentDetailPanel({
                   Cancel assignment
                 </button>
               </div>
+
+              {assignment.status === 'ACKED' && assignedUnit && (
+                <div style={{ marginTop: 12 }}>
+                  <p className="row-sub" style={{ marginBottom: 6 }}>
+                    Unit status: <span className={unitBadgeClass(assignedUnit.status)}>
+                      {unitStatusLabel(assignedUnit.status)}
+                    </span>
+                  </p>
+                  <div className="action-row">
+                    {PROGRESSION_STATUSES.map((status) => (
+                      <button
+                        key={status}
+                        className={`button ${assignedUnit.status === status ? 'button-primary' : ''}`}
+                        onClick={() => handleSetUnitStatus(status)}
+                        disabled={busy || assignedUnit.status === status}
+                      >
+                        {unitStatusLabel(status)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           ) : isTerminal ? (
             <p className="empty-state" style={{ padding: '4px 0' }}>
