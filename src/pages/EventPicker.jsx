@@ -62,18 +62,12 @@ export default function EventPicker({ onSelect, isAdmin, canViewReports, onAdmin
           <p className="empty-state">You're not checked into any events yet.</p>
         )}
         {myEvents?.map((event) => (
-          <button
-            key={event.id}
-            className="event-option"
-            onClick={() => onSelect(event)}
-            disabled={event.role_for_event !== 'dispatcher'}
-            title={event.role_for_event !== 'dispatcher' ? 'This console is for dispatchers' : undefined}
-          >
+          <button key={event.id} className="event-option" onClick={() => onSelect(event)}>
             <div className="event-option-name">{event.name}</div>
             <div className="event-option-sub">
               {event.role_for_event === 'dispatcher'
                 ? `Dispatching at ${event.venue_name}`
-                : `${event.venue_name} — this console is dispatcher-only`}
+                : `Live view at ${event.venue_name}`}
             </div>
           </button>
         ))}

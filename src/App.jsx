@@ -3,6 +3,7 @@ import { api, loadStoredToken, setAuthToken } from './api.js';
 import Login from './pages/Login.jsx';
 import EventPicker from './pages/EventPicker.jsx';
 import Dashboard from './pages/Dashboard.jsx';
+import LiveViewPage from './pages/LiveViewPage.jsx';
 import AdminPanel from './pages/AdminPanel.jsx';
 import ReportsPage from './pages/ReportsPage.jsx';
 
@@ -58,6 +59,22 @@ export default function App() {
         canViewReports={staff.canViewReports}
         onAdminMode={() => setMode('admin')}
         onReportsMode={() => setMode('reports')}
+      />
+    );
+  }
+
+  // Dispatchers get the full control board (drag-and-drop, admin
+  // controls). Field staff get the read-only live view instead - see
+  // LiveViewPage.jsx for why (originally built as a browser-based
+  // fallback for staff without the native field app, e.g. iOS before
+  // that gets a standalone build).
+  if (event.role_for_event === 'field_staff') {
+    return (
+      <LiveViewPage
+        event={event}
+        staffName={staff.name}
+        onChangeEvent={() => setEvent(null)}
+        onLogOut={handleLogOut}
       />
     );
   }
