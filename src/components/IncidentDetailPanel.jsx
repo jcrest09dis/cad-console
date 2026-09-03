@@ -46,6 +46,10 @@ export default function IncidentDetailPanel({
     withBusy(() => api.createAssignment(eventId, incident.id, selectedUnitId));
   }
 
+  function handleDispatcherAck() {
+    withBusy(() => api.dispatcherAckAssignment(eventId, assignment.id));
+  }
+
   function handleCancelAssignment() {
     withBusy(() => api.cancelAssignment(eventId, assignment.id));
   }
@@ -102,7 +106,7 @@ export default function IncidentDetailPanel({
           <p className="panel-section-title">Assignment</p>
           {assignment ? (
             <>
-              <div className="row row-bar-progress" style={{ marginBottom: 8 }}>
+              <div className="row row-bar-progress" style={{ marginBottom: 4 }}>
                 <div className="row-main">
                   <div className="row-title">{assignedUnit?.label ?? 'Unit'}</div>
                 </div>
@@ -110,7 +114,17 @@ export default function IncidentDetailPanel({
                   {assignmentStatusLabel(assignment.status)}
                 </span>
               </div>
+              {assignment.ack_method === 'dispatcher_override' && (
+                <p className="row-sub" style={{ marginBottom: 8 }}>
+                  Acknowledged by {assignment.acked_by_name} (confirmed via radio, not the unit's own device)
+                </p>
+              )}
               <div className="action-row">
+                {(assignment.status === 'PENDING' || assignment.status === 'UNCONFIRMED') && (
+                  <button className="button button-primary" onClick={handleDispatcherAck} disabled={busy}>
+                    Acknowledge for unit (radio)
+                  </button>
+                )}
                 <button className="button" onClick={handleCompleteAssignment} disabled={busy || assignment.status !== 'ACKED'}>
                   Mark complete
                 </button>

@@ -77,6 +77,8 @@ export const api = {
   assignments: (eventId) => request(`/events/${eventId}/assignments`),
   createAssignment: (eventId, incidentId, unitId) =>
     request(`/events/${eventId}/assignments`, { method: 'POST', body: { incidentId, unitId } }),
+  dispatcherAckAssignment: (eventId, assignmentId) =>
+    request(`/events/${eventId}/assignments/${assignmentId}/dispatcher-ack`, { method: 'POST' }),
   cancelAssignment: (eventId, assignmentId) =>
     request(`/events/${eventId}/assignments/${assignmentId}/cancel`, { method: 'POST' }),
   completeAssignment: (eventId, assignmentId) =>
