@@ -1,5 +1,8 @@
 :root {
-  /* Base palette - cool graphite, low-glare for extended low-light screen use */
+  /* Base palette - cool graphite, low-glare for extended low-light screen use.
+     This is the dark theme's values, used as the default (:root) since
+     it's the primary "control room" identity the app was designed around -
+     [data-theme="light"] below overrides every one of these for light mode. */
   --bg: #151a20;
   --panel: #1c232b;
   --panel-raised: #232b34;
@@ -20,10 +23,39 @@
   --priority-medium: #f0a93e;
   --priority-low: #6b7684;
   --alert: #ff5b57;
+  --alert-pulse-bg: #2a1e1e;
 
   --radius: 3px;
   --font-ui: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+/* Light theme - same control-room intent, same status-color language,
+   just inverted for daylight/glare conditions. Status colors are
+   deepened rather than reused verbatim from the dark theme, since the
+   dark theme's brighter greens/reds/ambers read as washed-out pastels
+   against a white panel - the point of each status color is to be
+   unambiguous at a glance, which needs more saturation on light. */
+[data-theme='light'] {
+  --bg: #f2f3f5;
+  --panel: #ffffff;
+  --panel-raised: #eceef1;
+  --hairline: #d7dbe0;
+  --text: #1a1f26;
+  --text-dim: #5b6472;
+  --text-faint: #8a92a0;
+
+  --accent: #2f6fe0;
+  --accent-text: #1d4ed8;
+
+  --status-available: #1f9d5c;
+  --status-progress: #2f6fe0;
+  --status-out: #6b7684;
+  --priority-high: #d93832;
+  --priority-medium: #c67c11;
+  --priority-low: #6b7684;
+  --alert: #d93832;
+  --alert-pulse-bg: #ffd9d6;
 }
 
 * {
@@ -188,6 +220,25 @@ a:focus-visible {
   width: 100%;
 }
 
+.theme-toggle {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 20;
+  background: var(--panel-raised);
+  border: 1px solid var(--hairline);
+  color: var(--text-dim);
+  border-radius: 20px;
+  padding: 8px 14px;
+  font-size: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.theme-toggle:hover {
+  color: var(--text);
+  border-color: var(--text-faint);
+}
+
 .column {
   background: var(--bg);
   display: flex;
@@ -284,7 +335,7 @@ a:focus-visible {
     background: var(--panel);
   }
   50% {
-    background: #2a1e1e;
+    background: var(--alert-pulse-bg);
   }
 }
 
