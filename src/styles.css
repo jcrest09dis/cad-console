@@ -135,6 +135,12 @@ a:focus-visible {
   gap: 12px;
 }
 
+.topbar-logo {
+  height: 28px;
+  width: auto;
+  align-self: center;
+}
+
 .topbar-title {
   font-weight: 700;
   font-size: 15px;
