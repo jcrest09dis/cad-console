@@ -225,7 +225,10 @@ wired into each page individually.
 
 - **Venues tab** — zone management now includes a bulk-import textarea
   (one zone per line) alongside the single-zone form, for populating an
-  entire venue at once.
+  entire venue at once. A second "Replace ALL zones" button (with
+  confirmation) deletes the venue's existing zones and replaces them
+  with the pasted list — for re-importing a corrected/updated list
+  rather than ending up with duplicates.
 
 - **Incident detail** — location now has an inline "Edit" link next to
   it in the panel header, for correcting a typo or an updated report

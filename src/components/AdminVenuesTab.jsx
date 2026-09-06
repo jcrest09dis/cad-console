@@ -104,6 +104,31 @@ function ZoneManager({ venueId }) {
     }
   }
 
+  // Wholesale replace - for re-importing a corrected/updated list (e.g.
+  // adding row ranges to labels that already existed) without ending up
+  // with both old and new versions as duplicate suggestions.
+  async function handleReplaceAll() {
+    const labels = bulkText
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (labels.length === 0) return;
+    if (!window.confirm(`Delete all ${zones?.length ?? 0} existing zones and replace with these ${labels.length}?`)) {
+      return;
+    }
+    setError(null);
+    setBusy(true);
+    try {
+      await adminApi.replaceZones(venueId, labels);
+      setBulkText('');
+      load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="admin-drilldown">
       <form className="admin-form-row" onSubmit={handleAdd}>
@@ -132,6 +157,14 @@ function ZoneManager({ venueId }) {
           disabled={busy || !bulkText.trim()}
         >
           {busy ? 'Importing…' : `Import ${bulkText.split('\n').map((l) => l.trim()).filter(Boolean).length} zones`}
+        </button>
+        <button
+          className="button button-danger"
+          style={{ marginTop: 6, marginLeft: 8 }}
+          onClick={handleReplaceAll}
+          disabled={busy || !bulkText.trim()}
+        >
+          Replace ALL zones with this list
         </button>
       </div>
 

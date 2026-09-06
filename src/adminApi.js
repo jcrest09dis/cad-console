@@ -47,6 +47,8 @@ export const adminApi = {
   createZone: (venueId, body) => request(`/admin/venues/${venueId}/zones`, { method: 'POST', body }),
   batchCreateZones: (venueId, labels) =>
     request(`/admin/venues/${venueId}/zones/batch`, { method: 'POST', body: { labels } }),
+  replaceZones: (venueId, labels) =>
+    request(`/admin/venues/${venueId}/zones/replace`, { method: 'POST', body: { labels } }),
 
   listEvents: () => request('/admin/events'),
   createEvent: (body) => request('/admin/events', { method: 'POST', body }),
