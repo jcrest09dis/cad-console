@@ -91,8 +91,9 @@ export default function AdminEventsTab({ events, venues, staff, onRefresh }) {
                   if (
                     !window.confirm(
                       `Close "${event.name}"? Any units still assigned to it will be returned to the pool ` +
-                      '(unassigned) and any of their active assignments will be cancelled. This can be undone ' +
-                      'later with Reopen, but units will need to be reassigned manually.'
+                      '(unassigned) with their crew cleared, any of their active assignments will be cancelled, ' +
+                      'and everyone still checked in will be checked out. This can be undone later with Reopen, ' +
+                      'but units and staff will need to be reassigned/checked in manually.'
                     )
                   ) {
                     return;
