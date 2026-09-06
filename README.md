@@ -227,6 +227,10 @@ wired into each page individually.
   (one zone per line) alongside the single-zone form, for populating an
   entire venue at once.
 
+- **Incident detail** — location now has an inline "Edit" link next to
+  it in the panel header, for correcting a typo or an updated report
+  after the incident was already created.
+
 ## Not built
 
 Map view (deliberately cut early on — see the original design

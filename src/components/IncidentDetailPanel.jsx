@@ -22,6 +22,8 @@ export default function IncidentDetailPanel({
   const [revisions, setRevisions] = useState([]);
   const [noteDraft, setNoteDraft] = useState('');
   const [selectedUnitId, setSelectedUnitId] = useState('');
+  const [editingLocation, setEditingLocation] = useState(false);
+  const [locationDraft, setLocationDraft] = useState(zoneLabel ?? '');
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -88,6 +90,14 @@ export default function IncidentDetailPanel({
     });
   }
 
+  function handleSaveLocation() {
+    if (!locationDraft.trim()) return;
+    withBusy(async () => {
+      await api.updateIncidentLocation(eventId, incident.id, locationDraft.trim());
+      setEditingLocation(false);
+    });
+  }
+
   function handleNoteKeyDown(e) {
     // Enter submits; Shift+Enter still inserts a newline for a
     // multi-line note, matching the common chat-input convention.
@@ -103,8 +113,41 @@ export default function IncidentDetailPanel({
     <div className="overlay" onClick={onClose}>
       <div className="side-panel" onClick={(e) => e.stopPropagation()}>
         <div className="side-panel-header">
-          <div>
-            <p className="side-panel-title">{zoneLabel ?? 'Unknown zone'}</p>
+          <div style={{ flex: 1 }}>
+            {editingLocation ? (
+              <div className="action-row" style={{ marginBottom: 4 }}>
+                <input
+                  className="field-input"
+                  value={locationDraft}
+                  onChange={(e) => setLocationDraft(e.target.value)}
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveLocation();
+                    if (e.key === 'Escape') setEditingLocation(false);
+                  }}
+                />
+                <button className="button button-primary" onClick={handleSaveLocation} disabled={busy}>
+                  Save
+                </button>
+                <button className="button" onClick={() => setEditingLocation(false)} disabled={busy}>
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <p className="side-panel-title">
+                {zoneLabel ?? 'Unknown zone'}{' '}
+                <button
+                  className="text-button"
+                  style={{ fontSize: 12, verticalAlign: 'middle' }}
+                  onClick={() => {
+                    setLocationDraft(zoneLabel ?? '');
+                    setEditingLocation(true);
+                  }}
+                >
+                  Edit
+                </button>
+              </p>
+            )}
             <p className="login-sub" style={{ margin: 0 }}>
               {incident.type}, {incident.priority} priority — {incident.status.toLowerCase()}
             </p>

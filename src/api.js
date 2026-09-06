@@ -62,6 +62,8 @@ export const api = {
 
   incidents: (eventId) => request(`/events/${eventId}/incidents`),
   createIncident: (eventId, body) => request(`/events/${eventId}/incidents`, { method: 'POST', body }),
+  updateIncidentLocation: (eventId, incidentId, locationText) =>
+    request(`/events/${eventId}/incidents/${incidentId}/location`, { method: 'POST', body: { locationText } }),
   setIncidentStatus: (eventId, incidentId, status) =>
     request(`/events/${eventId}/incidents/${incidentId}/status`, { method: 'POST', body: { status } }),
   getNotes: (eventId, incidentId) => request(`/events/${eventId}/incidents/${incidentId}/notes`),
