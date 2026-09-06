@@ -115,23 +115,25 @@ export default function IncidentDetailPanel({
         <div className="side-panel-header">
           <div style={{ flex: 1 }}>
             {editingLocation ? (
-              <div className="action-row" style={{ marginBottom: 4 }}>
-                <input
+              <div style={{ marginBottom: 4 }}>
+                <textarea
                   className="field-input"
+                  style={{ minHeight: 70, resize: 'vertical', marginBottom: 6 }}
                   value={locationDraft}
                   onChange={(e) => setLocationDraft(e.target.value)}
                   autoFocus
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSaveLocation();
                     if (e.key === 'Escape') setEditingLocation(false);
                   }}
                 />
-                <button className="button button-primary" onClick={handleSaveLocation} disabled={busy}>
-                  Save
-                </button>
-                <button className="button" onClick={() => setEditingLocation(false)} disabled={busy}>
-                  Cancel
-                </button>
+                <div className="action-row">
+                  <button className="button button-primary" onClick={handleSaveLocation} disabled={busy}>
+                    Save
+                  </button>
+                  <button className="button" onClick={() => setEditingLocation(false)} disabled={busy}>
+                    Cancel
+                  </button>
+                </div>
               </div>
             ) : (
               <p className="side-panel-title">

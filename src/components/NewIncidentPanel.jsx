@@ -4,8 +4,17 @@ import { api } from '../api.js';
 // zones (if provided) populate a <datalist> so previously-used location
 // names are suggested while typing - but the field is free text now,
 // not a required dropdown, so any value can be entered.
+//
+// Location is three stacked fields rather than one - section is the
+// only required part (matches how an incident gets reported in
+// practice: "Section 224" is immediately actionable, row/seat are
+// refinements that may not be known yet). Combined into a single
+// multi-line location_text on submit, so the backend needed no changes
+// at all - it was always just free text.
 export default function NewIncidentPanel({ eventId, zones, onClose, onCreated }) {
-  const [locationText, setLocationText] = useState('');
+  const [section, setSection] = useState('');
+  const [row, setRow] = useState('');
+  const [seat, setSeat] = useState('');
   const [type, setType] = useState('medical');
   const [priority, setPriority] = useState('medium');
   const [error, setError] = useState(null);
@@ -13,14 +22,17 @@ export default function NewIncidentPanel({ eventId, zones, onClose, onCreated })
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!locationText.trim()) {
-      setError('Enter a location.');
+    if (!section.trim()) {
+      setError('Enter a section.');
       return;
     }
     setError(null);
     setBusy(true);
+    const lines = [section.trim()];
+    if (row.trim()) lines.push(`Row ${row.trim()}`);
+    if (seat.trim()) lines.push(`Seat ${seat.trim()}`);
     try {
-      await api.createIncident(eventId, { locationText: locationText.trim(), type, priority });
+      await api.createIncident(eventId, { locationText: lines.join('\n'), type, priority });
       onCreated();
     } catch (err) {
       setError(err.message);
@@ -40,16 +52,16 @@ export default function NewIncidentPanel({ eventId, zones, onClose, onCreated })
         </div>
 
         <div className="field-group">
-          <label className="field-label" htmlFor="location">
-            Location
+          <label className="field-label" htmlFor="section">
+            Section
           </label>
           <input
-            id="location"
+            id="section"
             className="field-input"
             list="zone-suggestions"
-            value={locationText}
-            onChange={(e) => setLocationText(e.target.value)}
-            placeholder="e.g. Section 114, Gate C, West Concourse"
+            value={section}
+            onChange={(e) => setSection(e.target.value)}
+            placeholder="e.g. Section 224 (Rows 2-30)"
             autoFocus
           />
           {zones?.length > 0 && (
@@ -59,6 +71,32 @@ export default function NewIncidentPanel({ eventId, zones, onClose, onCreated })
               ))}
             </datalist>
           )}
+        </div>
+
+        <div className="field-group">
+          <label className="field-label" htmlFor="row">
+            Row
+          </label>
+          <input
+            id="row"
+            className="field-input"
+            value={row}
+            onChange={(e) => setRow(e.target.value)}
+            placeholder="e.g. 9"
+          />
+        </div>
+
+        <div className="field-group">
+          <label className="field-label" htmlFor="seat">
+            Seat
+          </label>
+          <input
+            id="seat"
+            className="field-input"
+            value={seat}
+            onChange={(e) => setSeat(e.target.value)}
+            placeholder="e.g. 30"
+          />
         </div>
 
         <div className="field-group">

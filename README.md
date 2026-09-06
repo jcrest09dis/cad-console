@@ -167,6 +167,25 @@ required for creating an incident anymore. Backend accepts
 `locationText` now instead of `locationZoneId` — see the backend README
 for the full data-model change.
 
+Location is split into three stacked fields (Section, Row, Seat) with
+only Section required, matching how an incident actually gets reported
+— combined into a single multi-line `location_text` on submit. The
+field app's `ReportIncidentModal.js` mirrors this exactly, minus the
+zone-suggestion datalist (React Native's `TextInput` has no native
+equivalent).
+
+The stored value is correctly multi-line, but nothing displayed it that
+way at first — HTML collapses `\n` into a regular space by default
+unless a CSS rule says otherwise, and a single-line `<input>` can never
+show multiple visual lines regardless of its content. Fixed with
+`white-space: pre-line` on the shared `.row-title` and
+`.side-panel-title` classes (covers every place a location shows up:
+`IncidentRow`, `LiveViewPage`, `ReportsPage`, the detail panel title),
+and by switching the location-edit control in `IncidentDetailPanel.jsx`
+from an `<input>` to a `<textarea>` so editing can actually show/produce
+line breaks - Enter now inserts a newline instead of submitting, same
+as any normal multi-line text field.
+
 The Units column also now shows an actively-assigned unit's incident
 location and call type directly on its row (`UnitRow.jsx`), not just a
 status badge — sourced from data the board already polls, no extra
