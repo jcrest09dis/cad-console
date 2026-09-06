@@ -228,7 +228,9 @@ wired into each page individually.
   entire venue at once. A second "Replace ALL zones" button (with
   confirmation) deletes the venue's existing zones and replaces them
   with the pasted list — for re-importing a corrected/updated list
-  rather than ending up with duplicates.
+  rather than ending up with duplicates. Each individual zone also has
+  its own inline **Edit** and **Delete** buttons now, for fixing or
+  removing one entry without touching the rest.
 
 - **Incident detail** — location now has an inline "Edit" link next to
   it in the panel header, for correcting a typo or an updated report

@@ -60,6 +60,8 @@ function ZoneManager({ venueId }) {
   const [zones, setZones] = useState(null);
   const [label, setLabel] = useState('');
   const [bulkText, setBulkText] = useState('');
+  const [editingZoneId, setEditingZoneId] = useState(null);
+  const [editDraft, setEditDraft] = useState('');
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -129,6 +131,29 @@ function ZoneManager({ venueId }) {
     }
   }
 
+  async function handleSaveZoneEdit(zoneId) {
+    if (!editDraft.trim()) return;
+    setError(null);
+    try {
+      await adminApi.updateZone(zoneId, editDraft.trim());
+      setEditingZoneId(null);
+      load();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleDeleteZone(zone) {
+    if (!window.confirm(`Delete zone "${zone.label}"?`)) return;
+    setError(null);
+    try {
+      await adminApi.deleteZone(zone.id);
+      load();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   return (
     <div className="admin-drilldown">
       <form className="admin-form-row" onSubmit={handleAdd}>
@@ -172,7 +197,43 @@ function ZoneManager({ venueId }) {
       {zones?.length === 0 && <p className="empty-state">No zones yet.</p>}
       {zones?.map((zone) => (
         <div className="admin-list-row" key={zone.id}>
-          <div className="admin-list-row-main">{zone.label}</div>
+          {editingZoneId === zone.id ? (
+            <>
+              <input
+                className="field-input"
+                style={{ flex: 1 }}
+                value={editDraft}
+                onChange={(e) => setEditDraft(e.target.value)}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveZoneEdit(zone.id);
+                  if (e.key === 'Escape') setEditingZoneId(null);
+                }}
+              />
+              <button className="button button-primary" onClick={() => handleSaveZoneEdit(zone.id)}>
+                Save
+              </button>
+              <button className="button" onClick={() => setEditingZoneId(null)}>
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="admin-list-row-main">{zone.label}</div>
+              <button
+                className="button"
+                onClick={() => {
+                  setEditDraft(zone.label);
+                  setEditingZoneId(zone.id);
+                }}
+              >
+                Edit
+              </button>
+              <button className="button button-danger" onClick={() => handleDeleteZone(zone)}>
+                Delete
+              </button>
+            </>
+          )}
         </div>
       ))}
     </div>
