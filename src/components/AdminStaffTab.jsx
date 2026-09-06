@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { adminApi } from '../adminApi.js';
 import { api } from '../api.js';
 
@@ -176,14 +177,13 @@ export default function AdminStaffTab({ staff, onRefresh }) {
               </button>
             </div>
             <p className="login-sub">
-              Have them add a new account in Google Authenticator, Authy, or similar, using
-              manual entry with this secret:
+              Have them scan this with Google Authenticator, Authy, or similar:
             </p>
-            <div className="notes-content mono">{enrollment.secret}</div>
-            <p className="login-sub">Or the full provisioning URI (for a QR code generator):</p>
-            <div className="notes-content mono" style={{ wordBreak: 'break-all' }}>
-              {enrollment.provisioningUri}
+            <div style={{ background: '#fff', padding: 16, borderRadius: 6, width: 'fit-content', margin: '0 auto 16px' }}>
+              <QRCodeSVG value={enrollment.provisioningUri} size={200} />
             </div>
+            <p className="login-sub">Can't scan? Manual entry with this secret:</p>
+            <div className="notes-content mono">{enrollment.secret}</div>
             <p className="login-sub">
               Once they've added it, have them read you the current 6-digit code to confirm
               the enrollment before login will work:

@@ -243,6 +243,15 @@ wired into each page individually.
   navigates back to the event picker afterward, since the event's no
   longer active.
 
+- **Staff enrollment** — now shows an actual scannable QR code
+  (`qrcode.react`) instead of just raw text, generated entirely
+  client-side. Deliberately not using a third-party QR-image-generation
+  API for this — the provisioning URI contains the actual TOTP secret,
+  and sending that to an external service just to render an image would
+  leak a real authentication credential over the network for no good
+  reason. Manual entry with the raw secret is still shown underneath as
+  a fallback for anyone who can't scan.
+
 ## Not built
 
 Map view (deliberately cut early on — see the original design
