@@ -52,7 +52,13 @@ dispatch board.
   view — write access still respects the OPEN/DISPATCHED edit window
   from the PHI boundary — the UI just hides the compose box once
   terminal, the real enforcement is server-side), assignment (create/
-  cancel/complete), resolve/cancel.
+  cancel/complete), resolve/cancel. A dispatcher can also acknowledge an
+  assignment on the unit's behalf ("Acknowledge for unit (radio)") when
+  it's `PENDING` or `UNCONFIRMED` — for confirmation received over the
+  radio rather than through the app. Shown distinctly from a normal ack
+  wherever it appears (this panel, the Reports view), since it's the
+  dispatcher's assertion that contact was made, not proof the field
+  device itself received anything.
 
 ## Real-time: WebSocket, with polling as a resilience backstop
 
@@ -165,6 +171,51 @@ The Units column also now shows an actively-assigned unit's incident
 location and call type directly on its row (`UnitRow.jsx`), not just a
 status badge — sourced from data the board already polls, no extra
 request.
+
+## Live view for staff without the native field app (`src/pages/LiveViewPage.jsx`)
+
+Read-only, mobile-friendly situational-awareness view — built as a
+browser-based fallback for field staff who don't have the native app
+available (currently: iOS, since that's not a standalone build yet —
+see the field app's README). Reuses the exact same REST endpoints and
+WebSocket channel the full dispatcher board uses; no backend changes
+were needed, since those endpoints were already correctly scoped for
+field staff (situational-awareness read access was part of the original
+PHI boundary design) — they just had no way to reach them through the
+console UI before this.
+
+Deliberately has **no interactive controls at all** — no ack, no status
+changes, no assign/resolve, just live units, incidents, and (tap an
+incident) its full note history read-only. If this needs to become
+interactive later, that's a bigger RBAC-aware addition, not a small
+extension of this page.
+
+This also fixed a real gap: field staff previously couldn't select an
+event in the console at all — `EventPicker.jsx` explicitly disabled
+every non-dispatcher option ("this console is for dispatchers"). Now
+role determines which screen you land on after picking an event
+(`App.jsx`): dispatcher → the full control board, field staff → this
+live view.
+
+## Light/dark theme
+
+Every color in the app was already a CSS custom property (`src/styles.css`),
+so adding a second theme was additive rather than a rewrite. `[data-theme='light']`
+overrides every variable `:root` defines for dark (the default — chosen
+deliberately over following OS preference, since this is as often a
+shared/kiosk-style device as a personal one, and a fixed default is less
+surprising than one that silently varies by whoever's logged in).
+
+Status colors aren't reused verbatim between themes — the dark theme's
+brighter greens/reds/ambers read as washed-out pastels against a white
+panel, so light mode's versions are deepened/more saturated to stay
+unambiguous at a glance, which is the actual point of a status color.
+
+`src/hooks/useTheme.js` manages the choice (persisted to `localStorage`,
+applied via a `data-theme` attribute on `<html>`) and `App.jsx` renders a
+small floating toggle globally, visible on every screen — login, event
+picker, both dashboards, admin, reports — rather than needing to be
+wired into each page individually.
 
 ## Not built
 

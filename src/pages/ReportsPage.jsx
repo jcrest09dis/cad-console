@@ -188,7 +188,14 @@ function ReportDetailPanel({ incidentId, onClose }) {
                     <div className="admin-list-row-sub">
                       {a.status.toLowerCase()}, dispatched by {a.dispatcher_name} at{' '}
                       {new Date(a.created_at).toLocaleString()}
-                      {a.acked_at && `, acked at ${new Date(a.acked_at).toLocaleString()}`}
+                      {a.acked_at &&
+                        `, acked at ${new Date(a.acked_at).toLocaleString()} by ${a.acked_by_name}${
+                          a.ack_method === 'dispatcher_override'
+                            ? ' (via radio, not the unit\'s own device)'
+                            : a.ack_method === 'self_initiated'
+                              ? ' (self-dispatched - no dispatcher assigned this unit)'
+                              : ''
+                        }`}
                     </div>
                   </div>
                 </div>

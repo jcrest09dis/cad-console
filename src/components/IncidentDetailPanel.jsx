@@ -131,6 +131,11 @@ export default function IncidentDetailPanel({
                   Acknowledged by {assignment.acked_by_name} (confirmed via radio, not the unit's own device)
                 </p>
               )}
+              {assignment.ack_method === 'self_initiated' && (
+                <p className="row-sub" style={{ marginBottom: 8 }}>
+                  Self-dispatched by {assignment.acked_by_name} - no dispatcher assigned this unit
+                </p>
+              )}
               <div className="action-row">
                 {(assignment.status === 'PENDING' || assignment.status === 'UNCONFIRMED') && (
                   <button className="button button-primary" onClick={handleDispatcherAck} disabled={busy}>

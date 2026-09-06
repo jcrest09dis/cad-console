@@ -87,8 +87,8 @@ export default function Dashboard({ event, staffName, isAdmin, canViewReports, o
     <div className="app-shell">
       <div className="topbar">
         <div className="topbar-left">
-	  <img src="/uk-wildcat-logo.png" alt="UK Wildcats" className="topbar-logo" />
-	  <img src="/uk-athletics-logo.png" alt="UK Athletics" className="topbar-logo" />
+          <img src="/uk-wildcat-logo.png" alt="UK Wildcats" className="topbar-logo" />
+          <img src="/uk-athletics-logo.png" alt="UK Athletics" className="topbar-logo" />
           <span className="topbar-title">CAD Console</span>
           <span className="topbar-event">{event.name}</span>
           <span
