@@ -217,6 +217,12 @@ small floating toggle globally, visible on every screen — login, event
 picker, both dashboards, admin, reports — rather than needing to be
 wired into each page individually.
 
+- **Events tab** — closing an event now asks for confirmation (it does
+  real cleanup, not just a status flip — see the backend README) and a
+  closed event shows a **Reopen** button in place of Close. Reopening
+  doesn't restore any units automatically; they're reassigned manually
+  via the Units tab, same as any other pooled unit.
+
 ## Not built
 
 Map view (deliberately cut early on — see the original design

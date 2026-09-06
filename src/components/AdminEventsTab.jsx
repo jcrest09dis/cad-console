@@ -84,15 +84,34 @@ export default function AdminEventsTab({ events, venues, staff, onRefresh }) {
             >
               {expandedEventId === event.id ? 'Hide' : 'Manage'}
             </button>
-            {event.status === 'active' && (
+            {event.status === 'active' ? (
               <button
                 className="button button-danger"
                 onClick={async () => {
+                  if (
+                    !window.confirm(
+                      `Close "${event.name}"? Any units still assigned to it will be returned to the pool ` +
+                      '(unassigned) and any of their active assignments will be cancelled. This can be undone ' +
+                      'later with Reopen, but units will need to be reassigned manually.'
+                    )
+                  ) {
+                    return;
+                  }
                   await adminApi.closeEvent(event.id);
                   onRefresh();
                 }}
               >
                 Close
+              </button>
+            ) : (
+              <button
+                className="button"
+                onClick={async () => {
+                  await adminApi.reopenEvent(event.id);
+                  onRefresh();
+                }}
+              >
+                Reopen
               </button>
             )}
           </div>

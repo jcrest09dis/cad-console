@@ -49,6 +49,7 @@ export const adminApi = {
   listEvents: () => request('/admin/events'),
   createEvent: (body) => request('/admin/events', { method: 'POST', body }),
   closeEvent: (eventId) => request(`/admin/events/${eventId}/close`, { method: 'POST' }),
+  reopenEvent: (eventId) => request(`/admin/events/${eventId}/reopen`, { method: 'POST' }),
 
   listUnits: (eventId) => request(`/admin/events/${eventId}/units`),
   listAllUnits: () => request('/admin/units'),
