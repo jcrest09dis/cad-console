@@ -63,6 +63,25 @@ export default function Dashboard({ event, staffName, isAdmin, canViewReports, o
     }
   }
 
+  async function handleCloseEvent() {
+    if (
+      !window.confirm(
+        `Close "${event.name}"? Any units still assigned to it will be returned to the pool ` +
+        '(unassigned) with their crew cleared, any of their active assignments will be cancelled, ' +
+        'and everyone still checked in will be checked out. An admin can reopen it later, but units ' +
+        'and staff will need to be reassigned/checked in manually.'
+      )
+    ) {
+      return;
+    }
+    try {
+      await api.closeEvent(event.id);
+      onChangeEvent();
+    } catch (err) {
+      setDropError(err.message);
+    }
+  }
+
   const unitById = new Map((units ?? []).map((u) => [u.id, u]));
   const incidentById = new Map((incidents ?? []).map((i) => [i.id, i]));
   const assignmentByIncidentId = new Map((assignments ?? []).map((a) => [a.incident_id, a]));
@@ -161,6 +180,9 @@ export default function Dashboard({ event, staffName, isAdmin, canViewReports, o
             <span className="column-count">{sortedIncidents.length}</span>
           </div>
           <div className="column-body">
+            <button className="button button-danger" style={{ width: '100%', marginBottom: 8 }} onClick={handleCloseEvent}>
+              Close event
+            </button>
             <button className="new-incident-button" onClick={() => setCreatingIncident(true)}>
               + New incident
             </button>

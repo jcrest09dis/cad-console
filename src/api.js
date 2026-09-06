@@ -77,6 +77,7 @@ export const api = {
   checkOut: (eventId) => request(`/me/events/${eventId}/checkout`, { method: 'POST' }),
 
   assignments: (eventId) => request(`/events/${eventId}/assignments`),
+  closeEvent: (eventId) => request(`/events/${eventId}/close`, { method: 'POST' }),
   createAssignment: (eventId, incidentId, unitId) =>
     request(`/events/${eventId}/assignments`, { method: 'POST', body: { incidentId, unitId } }),
   dispatcherAckAssignment: (eventId, assignmentId) =>

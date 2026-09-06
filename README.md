@@ -236,6 +236,13 @@ wired into each page individually.
   it in the panel header, for correcting a typo or an updated report
   after the incident was already created.
 
+- **Dashboard** — a **"Close event"** button now sits above "+ New
+  incident," letting a dispatcher wrap up their own event directly from
+  the live board instead of needing an admin. Same confirmation and real
+  cleanup as the admin panel's version (see backend README) — closing
+  navigates back to the event picker afterward, since the event's no
+  longer active.
+
 ## Not built
 
 Map view (deliberately cut early on — see the original design
