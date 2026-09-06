@@ -223,6 +223,10 @@ wired into each page individually.
   doesn't restore any units automatically; they're reassigned manually
   via the Units tab, same as any other pooled unit.
 
+- **Venues tab** — zone management now includes a bulk-import textarea
+  (one zone per line) alongside the single-zone form, for populating an
+  entire venue at once.
+
 ## Not built
 
 Map view (deliberately cut early on — see the original design

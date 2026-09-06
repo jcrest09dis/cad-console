@@ -59,7 +59,9 @@ export default function AdminVenuesTab({ venues, onRefresh }) {
 function ZoneManager({ venueId }) {
   const [zones, setZones] = useState(null);
   const [label, setLabel] = useState('');
+  const [bulkText, setBulkText] = useState('');
   const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
 
   function load() {
     adminApi.listZones(venueId).then(setZones).catch((err) => setError(err.message));
@@ -79,6 +81,29 @@ function ZoneManager({ venueId }) {
     }
   }
 
+  // Bulk import: one zone label per line - built for populating a whole
+  // venue at once (a stadium map's worth of sections/suites/named areas)
+  // rather than the single-zone form above, one at a time, dozens of
+  // times in a row.
+  async function handleBulkImport() {
+    const labels = bulkText
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (labels.length === 0) return;
+    setError(null);
+    setBusy(true);
+    try {
+      await adminApi.batchCreateZones(venueId, labels);
+      setBulkText('');
+      load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="admin-drilldown">
       <form className="admin-form-row" onSubmit={handleAdd}>
@@ -90,6 +115,26 @@ function ZoneManager({ venueId }) {
           Add zone
         </button>
       </form>
+
+      <div className="admin-form-field" style={{ marginTop: 12, marginBottom: 12 }}>
+        <label>Bulk import (one zone per line)</label>
+        <textarea
+          className="field-input"
+          style={{ minHeight: 100, fontFamily: 'monospace', fontSize: 13 }}
+          value={bulkText}
+          onChange={(e) => setBulkText(e.target.value)}
+          placeholder={'Section 1\nSection 2\nWildcat Plaza\n...'}
+        />
+        <button
+          className="button button-primary"
+          style={{ marginTop: 6 }}
+          onClick={handleBulkImport}
+          disabled={busy || !bulkText.trim()}
+        >
+          {busy ? 'Importing…' : `Import ${bulkText.split('\n').map((l) => l.trim()).filter(Boolean).length} zones`}
+        </button>
+      </div>
+
       {error && <p className="error-text">{error}</p>}
       {zones?.length === 0 && <p className="empty-state">No zones yet.</p>}
       {zones?.map((zone) => (
