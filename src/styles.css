@@ -756,3 +756,82 @@ a:focus-visible {
   margin-top: 8px;
 }
 
+/* ---- Venue map view (dashboard) ---- */
+
+.venue-map-view {
+  flex: 1;
+  overflow: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.venue-map-image-wrap {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.venue-map-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+}
+
+.venue-map-pin {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--panel);
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  padding: 0;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+}
+
+.venue-map-pin:hover {
+  transform: translate(-50%, -50%) scale(1.3);
+}
+
+.venue-map-note {
+  color: var(--text-faint);
+  font-size: 12px;
+  margin-top: 10px;
+}
+
+/* ---- Admin: venue map manager (click-to-place) ---- */
+
+.venue-map-admin-wrap {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  cursor: crosshair;
+}
+
+.venue-map-admin-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+}
+
+.venue-map-admin-pin {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--panel);
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  padding: 0;
+}
+
+.venue-map-admin-pin.selected {
+  background: var(--priority-high);
+}

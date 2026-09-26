@@ -49,6 +49,23 @@ async function request(path, { method = 'GET', body } = {}) {
   return data;
 }
 
+// Venue map images aren't JSON, so they don't go through request() above -
+// fetched directly with the same bearer token and handed back as a Blob.
+// An <img> tag can't send an Authorization header itself, which is why
+// this exists rather than just pointing src at the endpoint directly -
+// the caller turns the Blob into an object URL instead.
+export async function fetchVenueMapImageBlob(venueId) {
+  const headers = {};
+  if (authToken) headers.Authorization = `Bearer ${authToken}`;
+  const res = await fetch(`${BASE_URL}/venues/${venueId}/map-image`, { headers });
+  if (!res.ok) {
+    throw new Error(
+      res.status === 404 ? 'No map image uploaded for this venue yet' : `Request failed (${res.status})`
+    );
+  }
+  return res.blob();
+}
+
 export const api = {
   login: (username, totpCode) => request('/auth/login', { method: 'POST', body: { username, totpCode } }),
   confirmEnrollment: (username, totpCode) =>
@@ -70,6 +87,9 @@ export const api = {
   addNote: (eventId, incidentId, content) =>
     request(`/events/${eventId}/incidents/${incidentId}/notes`, { method: 'POST', body: { content } }),
   zones: (eventId) => request(`/events/${eventId}/zones`),
+
+  // Venue map (Dashboard "Venue map" tab)
+  eventMap: (eventId) => request(`/events/${eventId}/map`),
 
   // Self-check-in
   activeEvents: () => request('/events'),

@@ -43,6 +43,11 @@ export const adminApi = {
   listVenues: () => request('/admin/venues'),
   createVenue: (body) => request('/admin/venues', { method: 'POST', body }),
 
+  // Venue map image - sent as base64 JSON rather than multipart (matches
+  // the backend's body shape - see admin.js's POST /admin/venues/:id/map).
+  uploadVenueMap: (venueId, body) => request(`/admin/venues/${venueId}/map`, { method: 'POST', body }),
+  deleteVenueMap: (venueId) => request(`/admin/venues/${venueId}/map/delete`, { method: 'POST' }),
+
   listZones: (venueId) => request(`/admin/venues/${venueId}/zones`),
   createZone: (venueId, body) => request(`/admin/venues/${venueId}/zones`, { method: 'POST', body }),
   batchCreateZones: (venueId, labels) =>
@@ -51,6 +56,9 @@ export const adminApi = {
     request(`/admin/venues/${venueId}/zones/replace`, { method: 'POST', body: { labels } }),
   updateZone: (zoneId, label) => request(`/admin/zones/${zoneId}`, { method: 'POST', body: { label } }),
   deleteZone: (zoneId) => request(`/admin/zones/${zoneId}/delete`, { method: 'POST' }),
+  // Pass mapX: null, mapY: null to clear a zone's placed position.
+  saveZoneMapPosition: (zoneId, mapX, mapY) =>
+    request(`/admin/zones/${zoneId}/map-position`, { method: 'POST', body: { mapX, mapY } }),
 
   listEvents: () => request('/admin/events'),
   createEvent: (body) => request('/admin/events', { method: 'POST', body }),

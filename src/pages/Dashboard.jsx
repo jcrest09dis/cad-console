@@ -7,12 +7,14 @@ import IncidentRow, { DRAG_MIME } from '../components/IncidentRow.jsx';
 import UnitDetailPanel from '../components/UnitDetailPanel.jsx';
 import IncidentDetailPanel from '../components/IncidentDetailPanel.jsx';
 import NewIncidentPanel from '../components/NewIncidentPanel.jsx';
+import VenueMapView from '../components/VenueMapView.jsx';
 
 export default function Dashboard({ event, staffName, isAdmin, canViewReports, onAdminMode, onReportsMode, onChangeEvent, onLogOut }) {
   const [selectedIncidentId, setSelectedIncidentId] = useState(null);
   const [selectedUnitId, setSelectedUnitId] = useState(null);
   const [creatingIncident, setCreatingIncident] = useState(false);
   const [dropError, setDropError] = useState(null);
+  const [view, setView] = useState('board'); // 'board' | 'map'
 
   // WebSocket is now the primary way this screen learns about changes -
   // polling underneath it is lengthened to a resilience backstop (used
@@ -148,71 +150,84 @@ export default function Dashboard({ event, staffName, isAdmin, canViewReports, o
         </div>
       </div>
 
-      <div className="main-columns">
-        <div className="column">
-          <div className="column-header">
-            <h2>Units</h2>
-            <span className="column-count">{units?.length ?? 0}</span>
-          </div>
-          <p className="drag-hint">Drag an available unit onto an incident to assign it.</p>
-          <div className="column-body">
-            {units === null && <p className="empty-state">Loading…</p>}
-            {units?.length === 0 && <p className="empty-state">No units set up for this event yet.</p>}
-            {units?.map((unit) => {
-              const assignment = assignmentByUnitId.get(unit.id);
-              const assignedIncident = assignment ? incidentById.get(assignment.incident_id) : null;
-              return (
-                <UnitRow
-                  key={unit.id}
-                  unit={unit}
-                  assignedIncident={assignedIncident}
-                  onDragStart={handleUnitDragStart}
-                  onClick={() => setSelectedUnitId(unit.id)}
-                />
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="column">
-          <div className="column-header">
-            <h2>Incidents</h2>
-            <span className="column-count">{sortedIncidents.length}</span>
-          </div>
-          <div className="column-body">
-            <button className="button button-danger" style={{ width: '100%', marginBottom: 8 }} onClick={handleCloseEvent}>
-              Close event
-            </button>
-            <button className="new-incident-button" onClick={() => setCreatingIncident(true)}>
-              + New incident
-            </button>
-            {dropError && (
-              <p className="error-text" style={{ marginBottom: 8 }}>
-                {dropError}
-              </p>
-            )}
-            {incidents === null && <p className="empty-state">Loading…</p>}
-            {incidents !== null && sortedIncidents.length === 0 && (
-              <p className="empty-state">No open incidents.</p>
-            )}
-            {sortedIncidents.map((incident) => {
-              const assignment = assignmentByIncidentId.get(incident.id);
-              const assignedUnit = assignment ? unitById.get(assignment.unit_id) : null;
-              return (
-                <IncidentRow
-                  key={incident.id}
-                  incident={incident}
-                  zoneLabel={incident.zone_label}
-                  assignedUnitLabel={assignedUnit?.label}
-                  assignmentStatus={assignment?.status}
-                  onClick={() => setSelectedIncidentId(incident.id)}
-                  onDropUnit={(unitId) => handleDropUnit(unitId, incident.id)}
-                />
-              );
-            })}
-          </div>
-        </div>
+      <div className="admin-tabs">
+        <button className={`admin-tab ${view === 'board' ? 'active' : ''}`} onClick={() => setView('board')}>
+          Board
+        </button>
+        <button className={`admin-tab ${view === 'map' ? 'active' : ''}`} onClick={() => setView('map')}>
+          Venue map
+        </button>
       </div>
+
+      {view === 'map' && <VenueMapView event={event} onSelectIncident={setSelectedIncidentId} />}
+
+      {view === 'board' && (
+        <div className="main-columns">
+          <div className="column">
+            <div className="column-header">
+              <h2>Units</h2>
+              <span className="column-count">{units?.length ?? 0}</span>
+            </div>
+            <p className="drag-hint">Drag an available unit onto an incident to assign it.</p>
+            <div className="column-body">
+              {units === null && <p className="empty-state">Loading…</p>}
+              {units?.length === 0 && <p className="empty-state">No units set up for this event yet.</p>}
+              {units?.map((unit) => {
+                const assignment = assignmentByUnitId.get(unit.id);
+                const assignedIncident = assignment ? incidentById.get(assignment.incident_id) : null;
+                return (
+                  <UnitRow
+                    key={unit.id}
+                    unit={unit}
+                    assignedIncident={assignedIncident}
+                    onDragStart={handleUnitDragStart}
+                    onClick={() => setSelectedUnitId(unit.id)}
+                  />
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="column">
+            <div className="column-header">
+              <h2>Incidents</h2>
+              <span className="column-count">{sortedIncidents.length}</span>
+            </div>
+            <div className="column-body">
+              <button className="button button-danger" style={{ width: '100%', marginBottom: 8 }} onClick={handleCloseEvent}>
+                Close event
+              </button>
+              <button className="new-incident-button" onClick={() => setCreatingIncident(true)}>
+                + New incident
+              </button>
+              {dropError && (
+                <p className="error-text" style={{ marginBottom: 8 }}>
+                  {dropError}
+                </p>
+              )}
+              {incidents === null && <p className="empty-state">Loading…</p>}
+              {incidents !== null && sortedIncidents.length === 0 && (
+                <p className="empty-state">No open incidents.</p>
+              )}
+              {sortedIncidents.map((incident) => {
+                const assignment = assignmentByIncidentId.get(incident.id);
+                const assignedUnit = assignment ? unitById.get(assignment.unit_id) : null;
+                return (
+                  <IncidentRow
+                    key={incident.id}
+                    incident={incident}
+                    zoneLabel={incident.zone_label}
+                    assignedUnitLabel={assignedUnit?.label}
+                    assignmentStatus={assignment?.status}
+                    onClick={() => setSelectedIncidentId(incident.id)}
+                    onDropUnit={(unitId) => handleDropUnit(unitId, incident.id)}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedUnit && (
         <UnitDetailPanel

@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '../adminApi.js';
+import { fetchVenueMapImageBlob } from '../api.js';
 
 export default function AdminVenuesTab({ venues, onRefresh }) {
   const [name, setName] = useState('');
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [expandedVenueId, setExpandedVenueId] = useState(null);
+  const [expandedMapVenueId, setExpandedMapVenueId] = useState(null);
 
   async function handleCreate(e) {
     e.preventDefault();
@@ -41,15 +43,31 @@ export default function AdminVenuesTab({ venues, onRefresh }) {
       {venues?.map((venue) => (
         <div key={venue.id}>
           <div className="admin-list-row">
-            <div className="admin-list-row-main">{venue.name}</div>
+            <div className="admin-list-row-main">
+              {venue.name}
+              {venue.has_map && (
+                <span className="admin-list-row-sub" style={{ marginLeft: 8 }}>
+                  (map uploaded)
+                </span>
+              )}
+            </div>
             <button
               className="button"
               onClick={() => setExpandedVenueId(expandedVenueId === venue.id ? null : venue.id)}
             >
               {expandedVenueId === venue.id ? 'Hide zones' : 'Manage zones'}
             </button>
+            <button
+              className="button"
+              onClick={() => setExpandedMapVenueId(expandedMapVenueId === venue.id ? null : venue.id)}
+            >
+              {expandedMapVenueId === venue.id ? 'Hide map' : 'Manage map'}
+            </button>
           </div>
           {expandedVenueId === venue.id && <ZoneManager venueId={venue.id} />}
+          {expandedMapVenueId === venue.id && (
+            <VenueMapManager venueId={venue.id} hasMap={venue.has_map} onVenueChanged={onRefresh} />
+          )}
         </div>
       ))}
     </div>
@@ -236,6 +254,205 @@ function ZoneManager({ venueId }) {
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+// Upload/replace a venue's map image and click-to-place each zone's
+// position on it. Coordinates are saved as fractional (0-1) x/y - see
+// backend migration 009_venue_maps.sql - so placement stays correct
+// regardless of how large the image renders on any given screen.
+function VenueMapManager({ venueId, hasMap, onVenueChanged }) {
+  const [zones, setZones] = useState(null);
+  const [imageUrl, setImageUrl] = useState(null);
+  const [imageError, setImageError] = useState(null);
+  const [selectedZoneId, setSelectedZoneId] = useState('');
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  function loadZones() {
+    adminApi.listZones(venueId).then(setZones).catch((err) => setError(err.message));
+  }
+
+  useEffect(loadZones, [venueId]);
+
+  useEffect(() => {
+    let objectUrl = null;
+    let cancelled = false;
+    if (hasMap) {
+      setImageError(null);
+      fetchVenueMapImageBlob(venueId)
+        .then((blob) => {
+          if (cancelled) return;
+          objectUrl = URL.createObjectURL(blob);
+          setImageUrl(objectUrl);
+        })
+        .catch((err) => !cancelled && setImageError(err.message));
+    } else {
+      setImageUrl(null);
+    }
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [venueId, hasMap]);
+
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleFileSelected(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError(null);
+    setBusy(true);
+    try {
+      const imageBase64 = await fileToBase64(file);
+      await adminApi.uploadVenueMap(venueId, { imageBase64, contentType: file.type || 'image/png' });
+      onVenueChanged();
+      // onVenueChanged() reloads the venues list asynchronously, so
+      // hasMap won't flip on this render yet - fetch the fresh image
+      // directly here too rather than waiting on a prop update.
+      const blob = await fetchVenueMapImageBlob(venueId);
+      setImageUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(blob);
+      });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+      e.target.value = '';
+    }
+  }
+
+  async function handleRemoveMap() {
+    if (!window.confirm("Remove this venue's map image? Every zone's placed position will also be cleared.")) return;
+    setError(null);
+    setBusy(true);
+    try {
+      await adminApi.deleteVenueMap(venueId);
+      setImageUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      onVenueChanged();
+      loadZones();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleImageClick(e) {
+    if (!selectedZoneId) {
+      setError('Select a zone below first, then click its spot on the map.');
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const mapX = (e.clientX - rect.left) / rect.width;
+    const mapY = (e.clientY - rect.top) / rect.height;
+    setError(null);
+    try {
+      await adminApi.saveZoneMapPosition(selectedZoneId, mapX, mapY);
+      loadZones();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleClearPosition(zoneId) {
+    setError(null);
+    try {
+      await adminApi.saveZoneMapPosition(zoneId, null, null);
+      loadZones();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  return (
+    <div className="admin-drilldown">
+      <div className="admin-form-field" style={{ marginBottom: 12 }}>
+        <label>{hasMap ? 'Replace map image' : 'Upload map image'}</label>
+        <input type="file" accept="image/*" onChange={handleFileSelected} disabled={busy} />
+      </div>
+
+      {imageError && <p className="error-text">{imageError}</p>}
+      {error && <p className="error-text">{error}</p>}
+
+      {imageUrl && (
+        <>
+          <p className="admin-list-row-sub" style={{ marginBottom: 8 }}>
+            Select a zone below, then click its location on the map to place it.
+          </p>
+          <div className="venue-map-admin-wrap" onClick={handleImageClick}>
+            <img src={imageUrl} alt="Venue map" className="venue-map-admin-image" />
+            {zones
+              ?.filter((z) => z.map_x != null && z.map_y != null)
+              .map((z) => (
+                <button
+                  key={z.id}
+                  type="button"
+                  className={`venue-map-admin-pin ${selectedZoneId === z.id ? 'selected' : ''}`}
+                  style={{ left: `${z.map_x * 100}%`, top: `${z.map_y * 100}%` }}
+                  title={z.label}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedZoneId(z.id);
+                  }}
+                />
+              ))}
+          </div>
+
+          <div className="admin-form-field" style={{ marginTop: 12, marginBottom: 12 }}>
+            <label>Zone to place</label>
+            <select
+              className="field-select"
+              value={selectedZoneId}
+              onChange={(e) => setSelectedZoneId(e.target.value)}
+            >
+              <option value="">— select a zone —</option>
+              {zones?.map((z) => (
+                <option key={z.id} value={z.id}>
+                  {z.label} {z.map_x != null ? '(placed)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <p className="admin-list-row-sub" style={{ marginBottom: 6 }}>
+            Placed zones
+          </p>
+          {zones?.filter((z) => z.map_x != null).length === 0 && (
+            <p className="empty-state" style={{ padding: '8px 0' }}>
+              No zones placed on the map yet.
+            </p>
+          )}
+          {zones
+            ?.filter((z) => z.map_x != null)
+            .map((z) => (
+              <div className="admin-list-row" key={z.id}>
+                <div className="admin-list-row-main">{z.label}</div>
+                <button className="button button-danger" onClick={() => handleClearPosition(z.id)}>
+                  Clear position
+                </button>
+              </div>
+            ))}
+
+          <button className="button button-danger" style={{ marginTop: 12 }} onClick={handleRemoveMap} disabled={busy}>
+            Remove map image
+          </button>
+        </>
+      )}
+
+      {!imageUrl && !imageError && hasMap && <p className="empty-state">Loading map…</p>}
     </div>
   );
 }
