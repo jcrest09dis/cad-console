@@ -115,6 +115,28 @@ export default function AdminEventsTab({ events, venues, staff, onRefresh }) {
                 Reopen
               </button>
             )}
+                        <button
+              className="button button-danger"
+              onClick={async () => {
+                if (
+                  !window.confirm(
+                    `Permanently delete "${event.name}"? This deletes every incident on it (and their assignment ` +
+                    'history, notes, and outbox messages) and removes it entirely - this cannot be undone. ' +
+                    'Units assigned to it will be returned to the pool, not deleted.'
+                  )
+                ) {
+                  return;
+                }
+                try {
+                  await adminApi.deleteEvent(event.id);
+                  onRefresh();
+                } catch (err) {
+                  setError(err.message);
+                }
+              }}
+            >
+              Delete
+            </button>
           </div>
           {expandedEventId === event.id && <EventDrilldown eventId={event.id} staff={staff} />}
         </div>
