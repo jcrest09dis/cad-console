@@ -123,21 +123,32 @@ export default function AdminEventsTab({ events, venues, staff, onRefresh }) {
   );
 }
 
-// Staffing only now - unit creation and crew management moved to their
-// own top-level "Units" tab (AdminUnitsTab.jsx), since units are their
-// own concern and nesting them here made them hard to find.
+// Staffing and unit assignment for one event. Unit creation and crewing
+// still live in their own top-level "Units" tab (AdminUnitsTab.jsx) - this
+// is just the "which units are working this event" view, so a dispatcher
+// setting up an event doesn't have to bounce over to a different tab and
+// assign units one at a time.
 function EventDrilldown({ eventId, staff }) {
   const [staffing, setStaffing] = useState(null);
   const [staffingStaffId, setStaffingStaffId] = useState('');
   const [staffingRole, setStaffingRole] = useState('field_staff');
+  const [units, setUnits] = useState(null);
+  const [selectedUnitIds, setSelectedUnitIds] = useState(new Set());
   const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
 
   function loadStaffing() {
     adminApi.listStaffing(eventId).then(setStaffing).catch((err) => setError(err.message));
   }
 
+  function loadUnits() {
+    adminApi.listAllUnits().then(setUnits).catch((err) => setError(err.message));
+  }
+
   useEffect(() => {
     loadStaffing();
+    loadUnits();
+    setSelectedUnitIds(new Set());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId]);
 
@@ -158,11 +169,108 @@ function EventDrilldown({ eventId, staff }) {
     loadStaffing();
   }
 
+  function toggleUnitSelected(unitId) {
+    setSelectedUnitIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(unitId)) {
+        next.delete(unitId);
+      } else {
+        next.add(unitId);
+      }
+      return next;
+    });
+  }
+
+  async function handleAssignSelected() {
+    if (selectedUnitIds.size === 0) return;
+    setError(null);
+    setBusy(true);
+    try {
+      for (const unitId of selectedUnitIds) {
+        await adminApi.assignUnitEvent(unitId, eventId);
+      }
+      setSelectedUnitIds(new Set());
+      loadUnits();
+    } catch (err) {
+      setError(err.message);
+      loadUnits();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleRemoveUnit(unitId) {
+    setError(null);
+    try {
+      await adminApi.assignUnitEvent(unitId, null);
+      loadUnits();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  const assignedUnits = (units ?? []).filter((u) => u.event_id === eventId);
+  const availableUnits = (units ?? []).filter((u) => u.event_id !== eventId);
+
   return (
     <div className="admin-drilldown">
       {error && <p className="error-text">{error}</p>}
 
-      <p className="admin-section-title">Staffing</p>
+      <p className="admin-section-title">Units on this event ({assignedUnits.length})</p>
+      {units === null && <p className="empty-state">Loading…</p>}
+      {units !== null && assignedUnits.length === 0 && (
+        <p className="empty-state">No units assigned yet.</p>
+      )}
+      {assignedUnits.map((unit) => (
+        <div className="admin-list-row" key={unit.id}>
+          <div className="admin-list-row-main">{unit.label}</div>
+          <button className="button" onClick={() => handleRemoveUnit(unit.id)}>
+            Remove
+          </button>
+        </div>
+      ))}
+
+      <p className="admin-section-title" style={{ marginTop: 16 }}>
+        Assign units
+      </p>
+      {units !== null && availableUnits.length === 0 && (
+        <p className="empty-state">Every unit is already on this event.</p>
+      )}
+      {availableUnits.length > 0 && (
+        <>
+          <div className="admin-drilldown" style={{ maxHeight: 260, overflowY: 'auto' }}>
+            {availableUnits.map((unit) => (
+              <label key={unit.id} className="admin-list-row" style={{ cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={selectedUnitIds.has(unit.id)}
+                  onChange={() => toggleUnitSelected(unit.id)}
+                  style={{ marginRight: 4 }}
+                />
+                <div className="admin-list-row-main">
+                  {unit.label}
+                  <span className="admin-list-row-sub">
+                    {' '}
+                    — {unit.event_name ? `currently on ${unit.event_name}` : 'unassigned'}
+                  </span>
+                </div>
+              </label>
+            ))}
+          </div>
+          <button
+            className="button button-primary"
+            style={{ marginTop: 8 }}
+            onClick={handleAssignSelected}
+            disabled={busy || selectedUnitIds.size === 0}
+          >
+            {busy ? 'Assigning…' : `Assign ${selectedUnitIds.size} selected unit${selectedUnitIds.size === 1 ? '' : 's'}`}
+          </button>
+        </>
+      )}
+
+      <p className="admin-section-title" style={{ marginTop: 20 }}>
+        Staffing
+      </p>
       <form className="admin-form-row" onSubmit={handleSetStaffing}>
         <div className="admin-form-field">
           <label>Staff</label>
