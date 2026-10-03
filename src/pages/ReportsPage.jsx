@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from 'react';
-import { api } from '../api.js';
+import { api, exportEventReportBlob } from '../api.js';
 import { incidentBadgeClass } from '../statusStyles.js';
 
 function formatDuration(createdAt, closedAt) {
@@ -10,12 +10,24 @@ function formatDuration(createdAt, closedAt) {
   return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 }
 
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export default function ReportsPage({ onExit }) {
   const [events, setEvents] = useState(null);
   const [filters, setFilters] = useState({ eventId: '', type: '', priority: '', status: '' });
   const [incidents, setIncidents] = useState(null);
   const [error, setError] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     api.reportEvents().then(setEvents).catch((err) => setError(err.message));
@@ -27,6 +39,21 @@ export default function ReportsPage({ onExit }) {
   }
 
   useEffect(runSearch, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleExport() {
+    if (!filters.eventId) return;
+    setError(null);
+    setExporting(true);
+    try {
+      const blob = await exportEventReportBlob(filters.eventId);
+      const eventName = events?.find((ev) => ev.id === filters.eventId)?.name ?? 'event';
+      downloadBlob(blob, `incident-report-${eventName.replace(/[^a-z0-9]+/gi, '-')}.pdf`);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <div className="app-shell">
@@ -101,6 +128,14 @@ export default function ReportsPage({ onExit }) {
           </div>
           <button className="button button-primary" onClick={runSearch}>
             Search
+          </button>
+          <button
+            className="button"
+            onClick={handleExport}
+            disabled={!filters.eventId || exporting}
+            title={!filters.eventId ? 'Select an event above to export its incident report' : undefined}
+          >
+            {exporting ? 'Exporting\u2026' : 'Export PDF'}
           </button>
         </div>
 

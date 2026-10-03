@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+﻿const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
 
 let authToken = null;
 
@@ -62,6 +62,26 @@ export async function fetchVenueMapImageBlob(venueId) {
     throw new Error(
       res.status === 404 ? 'No map image uploaded for this venue yet' : `Request failed (${res.status})`
     );
+  }
+  return res.blob();
+}
+
+// Same idea as fetchVenueMapImageBlob - a PDF isn't JSON, so it bypasses
+// request() and is handed back as a Blob for the caller to turn into a
+// download link.
+export async function exportEventReportBlob(eventId) {
+  const headers = {};
+  if (authToken) headers.Authorization = `Bearer ${authToken}`;
+  const res = await fetch(`${BASE_URL}/reports/events/${eventId}/export`, { headers });
+  if (!res.ok) {
+    let message = `Request failed (${res.status})`;
+    try {
+      const data = await res.json();
+      if (data?.error) message = data.error;
+    } catch {
+      // no JSON body
+    }
+    throw new Error(message);
   }
   return res.blob();
 }

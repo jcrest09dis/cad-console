@@ -1,5 +1,17 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { adminApi } from '../adminApi.js';
+import { exportEventReportBlob } from '../api.js';
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
 
 export default function AdminEventsTab({ events, venues, staff, onRefresh }) {
   const [name, setName] = useState('');
@@ -8,6 +20,7 @@ export default function AdminEventsTab({ events, venues, staff, onRefresh }) {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [expandedEventId, setExpandedEventId] = useState(null);
+  const [exportingEventId, setExportingEventId] = useState(null);
 
   async function handleCreate(e) {
     e.preventDefault();
@@ -31,6 +44,19 @@ export default function AdminEventsTab({ events, venues, staff, onRefresh }) {
       setError(err.message);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleExport(event) {
+    setError(null);
+    setExportingEventId(event.id);
+    try {
+      const blob = await exportEventReportBlob(event.id);
+      downloadBlob(blob, `incident-report-${event.name.replace(/[^a-z0-9]+/gi, '-')}.pdf`);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setExportingEventId(null);
     }
   }
 
@@ -84,6 +110,13 @@ export default function AdminEventsTab({ events, venues, staff, onRefresh }) {
             >
               {expandedEventId === event.id ? 'Hide' : 'Manage'}
             </button>
+            <button
+              className="button"
+              onClick={() => handleExport(event)}
+              disabled={exportingEventId === event.id}
+            >
+              {exportingEventId === event.id ? 'Exporting…' : 'Export'}
+            </button>
             {event.status === 'active' ? (
               <button
                 className="button button-danger"
@@ -115,7 +148,7 @@ export default function AdminEventsTab({ events, venues, staff, onRefresh }) {
                 Reopen
               </button>
             )}
-                        <button
+            <button
               className="button button-danger"
               onClick={async () => {
                 if (
