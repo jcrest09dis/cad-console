@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import { incidentBadgeClass } from '../statusStyles.js';
 
@@ -135,18 +135,45 @@ export default function ReportsPage({ onExit }) {
         ))}
       </div>
 
-      {selectedId && <ReportDetailPanel incidentId={selectedId} onClose={() => setSelectedId(null)} />}
+      {selectedId && (
+        <ReportDetailPanel
+          incidentId={selectedId}
+          onClose={() => setSelectedId(null)}
+          onReopened={runSearch}
+        />
+      )}
     </div>
   );
 }
 
-function ReportDetailPanel({ incidentId, onClose }) {
+function ReportDetailPanel({ incidentId, onClose, onReopened }) {
   const [detail, setDetail] = useState(null);
   const [error, setError] = useState(null);
+  const [info, setInfo] = useState(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     api.reportIncidentDetail(incidentId).then(setDetail).catch((err) => setError(err.message));
   }, [incidentId]);
+
+  function handleReopen() {
+    setError(null);
+    setInfo(null);
+    setBusy(true);
+    api
+      .reopenIncident(detail.event_id, incidentId)
+      .then((res) => {
+        if (res?.eventReopened) {
+          setInfo('This event had been closed - it was reopened too, since the incident needed to come back.');
+        }
+        return api.reportIncidentDetail(incidentId).then(setDetail);
+      })
+      .then(() => onReopened?.())
+      .catch((err) => setError(err.message))
+      .finally(() => setBusy(false));
+  }
+
+  const isTerminal = detail && (detail.status === 'RESOLVED' || detail.status === 'CANCELLED');
 
   return (
     <div className="overlay" onClick={onClose}>
@@ -214,6 +241,22 @@ function ReportDetailPanel({ incidentId, onClose }) {
                 </div>
               ))}
             </div>
+
+            {isTerminal && (
+              <div className="panel-section">
+                <p className="panel-section-title">Reopen incident</p>
+                <p className="row-sub" style={{ marginBottom: 8 }}>
+                  Use this if additional information needs to be added after the fact. The incident returns to OPEN for fresh dispatch.
+                </p>
+                <div className="action-row">
+                  <button className="button button-primary" onClick={handleReopen} disabled={busy}>
+                    Reopen incident
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {info && <p className="row-sub" style={{ marginTop: 8 }}>{info}</p>}
           </>
         )}
       </div>
