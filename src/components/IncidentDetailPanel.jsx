@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import { assignmentBadgeClass, assignmentStatusLabel, unitBadgeClass, unitStatusLabel } from '../statusStyles.js';
 
@@ -25,6 +25,7 @@ export default function IncidentDetailPanel({
   const [editingLocation, setEditingLocation] = useState(false);
   const [locationDraft, setLocationDraft] = useState(zoneLabel ?? '');
   const [error, setError] = useState(null);
+  const [info, setInfo] = useState(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -78,6 +79,16 @@ export default function IncidentDetailPanel({
 
   function handleCancelIncident() {
     withBusy(() => api.setIncidentStatus(eventId, incident.id, 'CANCELLED'));
+  }
+
+  function handleReopen() {
+    setInfo(null);
+    withBusy(async () => {
+      const res = await api.reopenIncident(eventId, incident.id);
+      if (res?.eventReopened) {
+        setInfo('This event had been closed - it was reopened too, since the incident needed to come back.');
+      }
+    });
   }
 
   function handleSaveNote() {
@@ -290,6 +301,21 @@ export default function IncidentDetailPanel({
           </div>
         )}
 
+        {isTerminal && (
+          <div className="panel-section">
+            <p className="panel-section-title">Reopen incident</p>
+            <p className="row-sub" style={{ marginBottom: 8 }}>
+              Use this if additional information needs to be added after the fact. The incident returns to OPEN for fresh dispatch.
+            </p>
+            <div className="action-row">
+              <button className="button button-primary" onClick={handleReopen} disabled={busy}>
+                Reopen incident
+              </button>
+            </div>
+          </div>
+        )}
+
+        {info && <p className="row-sub" style={{ marginTop: 8 }}>{info}</p>}
         {error && <p className="error-text">{error}</p>}
       </div>
     </div>

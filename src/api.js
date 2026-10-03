@@ -83,6 +83,8 @@ export const api = {
     request(`/events/${eventId}/incidents/${incidentId}/location`, { method: 'POST', body: { locationText } }),
   setIncidentStatus: (eventId, incidentId, status) =>
     request(`/events/${eventId}/incidents/${incidentId}/status`, { method: 'POST', body: { status } }),
+  reopenIncident: (eventId, incidentId) =>
+    request(`/events/${eventId}/incidents/${incidentId}/reopen`, { method: 'POST' }),
   getNotes: (eventId, incidentId) => request(`/events/${eventId}/incidents/${incidentId}/notes`),
   addNote: (eventId, incidentId, content) =>
     request(`/events/${eventId}/incidents/${incidentId}/notes`, { method: 'POST', body: { content } }),
