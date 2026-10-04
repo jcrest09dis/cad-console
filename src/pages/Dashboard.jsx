@@ -9,7 +9,7 @@ import IncidentDetailPanel from '../components/IncidentDetailPanel.jsx';
 import NewIncidentPanel from '../components/NewIncidentPanel.jsx';
 import VenueMapView from '../components/VenueMapView.jsx';
 
-const UNIT_TYPE_OPTIONS = ['EC', 'Cart', 'Law', 'Fire', 'Unspecified'];
+const UNIT_TYPE_OPTIONS = ['EC', 'Cart', 'Rupp Cart', 'Law', 'Fire', 'Unspecified'];
 const UNIT_TYPE_TABS_STORAGE_KEY = 'cad-console:unit-type-tabs';
 const DEFAULT_UNIT_TYPE_TAB = { id: 'all', name: 'All units', types: null };
 
@@ -148,7 +148,7 @@ export default function Dashboard({ event, staffName, isAdmin, canViewReports, o
   // unit-type tab narrows which types are visible at all, the status filter
   // narrows by assignment state, and within each group assigned/active units
   // sort above available ones (then alphabetically by label).
-  const UNIT_TYPE_ORDER = ['EC', 'Cart', 'Law', 'Fire'];
+  const UNIT_TYPE_ORDER = ['EC', 'Cart', 'Rupp Cart', 'Law', 'Fire'];
   const activeUnitTypeTab = unitTypeTabs.find((t) => t.id === activeUnitTypeTabId) ?? unitTypeTabs[0];
   const filteredUnits = (units ?? []).filter((u) => {
     if (activeUnitTypeTab.types) {

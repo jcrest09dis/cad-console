@@ -69,6 +69,7 @@ export default function AdminUnitsTab({ events, staff }) {
             <option value="">Unspecified</option>
             <option value="EC">EC</option>
             <option value="Cart">Cart</option>
+            <option value="Rupp Cart">Rupp Cart</option>
             <option value="Law">Law</option>
             <option value="Fire">Fire</option>
           </select>
@@ -105,6 +106,7 @@ export default function AdminUnitsTab({ events, staff }) {
               <option value="">Unspecified</option>
               <option value="EC">EC</option>
               <option value="Cart">Cart</option>
+              <option value="Rupp Cart">Rupp Cart</option>
               <option value="Law">Law</option>
               <option value="Fire">Fire</option>
             </select>
