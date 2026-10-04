@@ -72,6 +72,8 @@ export const adminApi = {
   createPooledUnit: (body) => request('/admin/units', { method: 'POST', body }),
   assignUnitEvent: (unitId, eventId) =>
     request(`/admin/units/${unitId}/assign-event`, { method: 'POST', body: { eventId } }),
+  setUnitType: (unitId, unitType) =>
+    request(`/admin/units/${unitId}/type`, { method: 'POST', body: { unitType } }),
 
   listCrew: (unitId) => request(`/admin/units/${unitId}/crew`),
   addCrew: (unitId, staffId) => request(`/admin/units/${unitId}/crew`, { method: 'POST', body: { staffId } }),

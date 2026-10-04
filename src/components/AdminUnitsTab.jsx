@@ -4,6 +4,7 @@ import { adminApi } from '../adminApi.js';
 export default function AdminUnitsTab({ events, staff }) {
   const [units, setUnits] = useState(null);
   const [unitLabel, setUnitLabel] = useState('');
+  const [unitType, setUnitType] = useState('');
   const [expandedUnitId, setExpandedUnitId] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -23,8 +24,9 @@ export default function AdminUnitsTab({ events, staff }) {
       // No event required - units are pooled now, the same way staff
       // are created once and assigned to events later rather than
       // recreated per event.
-      await adminApi.createPooledUnit({ label: unitLabel.trim() });
+      await adminApi.createPooledUnit({ label: unitLabel.trim(), unitType: unitType || null });
       setUnitLabel('');
+      setUnitType('');
       loadUnits();
     } catch (err) {
       setError(err.message);
@@ -43,6 +45,16 @@ export default function AdminUnitsTab({ events, staff }) {
     }
   }
 
+  async function handleSetUnitType(unitId, unitType) {
+    setError(null);
+    try {
+      await adminApi.setUnitType(unitId, unitType || null);
+      loadUnits();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   return (
     <div className="admin-section">
       <p className="admin-section-title">Add unit</p>
@@ -50,6 +62,16 @@ export default function AdminUnitsTab({ events, staff }) {
         <div className="admin-form-field">
           <label>Unit label (e.g. Medic 1)</label>
           <input className="field-input" value={unitLabel} onChange={(e) => setUnitLabel(e.target.value)} />
+        </div>
+        <div className="admin-form-field">
+          <label>Unit type</label>
+          <select className="field-select" value={unitType} onChange={(e) => setUnitType(e.target.value)}>
+            <option value="">Unspecified</option>
+            <option value="EC">EC</option>
+            <option value="Cart">Cart</option>
+            <option value="Law">Law</option>
+            <option value="Fire">Fire</option>
+          </select>
         </div>
         <button className="button button-primary" type="submit" disabled={busy}>
           Add unit
@@ -69,10 +91,23 @@ export default function AdminUnitsTab({ events, staff }) {
               {unit.label}
               <span className="admin-list-row-sub">
                 {' '}
-                — {unit.event_name ? `${unit.event_name} (${unit.event_status})` : 'Unassigned'},{' '}
+                — {unit.unit_type ? `${unit.unit_type}, ` : ''}
+                {unit.event_name ? `${unit.event_name} (${unit.event_status})` : 'Unassigned'},{' '}
                 {unit.status.toLowerCase()}
               </span>
             </div>
+            <select
+              className="field-select"
+              style={{ maxWidth: 110 }}
+              value={unit.unit_type ?? ''}
+              onChange={(e) => handleSetUnitType(unit.id, e.target.value)}
+            >
+              <option value="">Unspecified</option>
+              <option value="EC">EC</option>
+              <option value="Cart">Cart</option>
+              <option value="Law">Law</option>
+              <option value="Fire">Fire</option>
+            </select>
             <select
               className="field-select"
               style={{ maxWidth: 180 }}

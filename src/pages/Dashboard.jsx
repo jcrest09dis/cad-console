@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '../api.js';
 import { usePolling } from '../hooks/usePolling.js';
 import { useLiveSocket } from '../hooks/useLiveSocket.js';
@@ -9,12 +9,66 @@ import IncidentDetailPanel from '../components/IncidentDetailPanel.jsx';
 import NewIncidentPanel from '../components/NewIncidentPanel.jsx';
 import VenueMapView from '../components/VenueMapView.jsx';
 
+const UNIT_TYPE_OPTIONS = ['EC', 'Cart', 'Law', 'Fire', 'Unspecified'];
+const UNIT_TYPE_TABS_STORAGE_KEY = 'cad-console:unit-type-tabs';
+const DEFAULT_UNIT_TYPE_TAB = { id: 'all', name: 'All units', types: null };
+
 export default function Dashboard({ event, staffName, isAdmin, canViewReports, onAdminMode, onReportsMode, onChangeEvent, onLogOut }) {
   const [selectedIncidentId, setSelectedIncidentId] = useState(null);
   const [selectedUnitId, setSelectedUnitId] = useState(null);
   const [creatingIncident, setCreatingIncident] = useState(false);
   const [dropError, setDropError] = useState(null);
   const [view, setView] = useState('board'); // 'board' | 'map'
+  const [unitStatusFilter, setUnitStatusFilter] = useState('all'); // 'all' | 'available' | 'assigned'
+
+  // Named, savable groupings of unit types (e.g. "Medical" = EC + Cart),
+  // persisted in this browser so a dispatcher's custom tabs survive reloads.
+  // The built-in "All units" tab (types: null) can't be removed.
+  const [unitTypeTabs, setUnitTypeTabs] = useState(() => {
+    try {
+      const saved = localStorage.getItem(UNIT_TYPE_TABS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length) return parsed;
+      }
+    } catch {
+      // Storage unavailable or corrupt - fall back to the default tab.
+    }
+    return [DEFAULT_UNIT_TYPE_TAB];
+  });
+  const [activeUnitTypeTabId, setActiveUnitTypeTabId] = useState('all');
+  const [addingUnitTypeTab, setAddingUnitTypeTab] = useState(false);
+  const [newTabName, setNewTabName] = useState('');
+  const [newTabTypes, setNewTabTypes] = useState([]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(UNIT_TYPE_TABS_STORAGE_KEY, JSON.stringify(unitTypeTabs));
+    } catch {
+      // Storage unavailable or full - tabs just won't persist this session.
+    }
+  }, [unitTypeTabs]);
+
+  function toggleNewTabType(type) {
+    setNewTabTypes((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]));
+  }
+
+  function handleSaveUnitTypeTab(e) {
+    e.preventDefault();
+    if (!newTabName.trim() || newTabTypes.length === 0) return;
+    const tab = { id: `tab-${Date.now()}`, name: newTabName.trim(), types: newTabTypes };
+    setUnitTypeTabs((prev) => [...prev, tab]);
+    setActiveUnitTypeTabId(tab.id);
+    setNewTabName('');
+    setNewTabTypes([]);
+    setAddingUnitTypeTab(false);
+  }
+
+  function handleDeleteUnitTypeTab(tabId) {
+    if (tabId === 'all') return;
+    setUnitTypeTabs((prev) => prev.filter((t) => t.id !== tabId));
+    if (activeUnitTypeTabId === tabId) setActiveUnitTypeTabId('all');
+  }
 
   // WebSocket is now the primary way this screen learns about changes -
   // polling underneath it is lengthened to a resilience backstop (used
@@ -88,6 +142,38 @@ export default function Dashboard({ event, staffName, isAdmin, canViewReports, o
   const incidentById = new Map((incidents ?? []).map((i) => [i.id, i]));
   const assignmentByIncidentId = new Map((assignments ?? []).map((a) => [a.incident_id, a]));
   const assignmentByUnitId = new Map((assignments ?? []).map((a) => [a.unit_id, a]));
+
+  // Units are grouped by type on the board (EC / Cart / Law / Fire, with an
+  // "Unspecified" bucket for units an admin hasn't typed yet). The active
+  // unit-type tab narrows which types are visible at all, the status filter
+  // narrows by assignment state, and within each group assigned/active units
+  // sort above available ones (then alphabetically by label).
+  const UNIT_TYPE_ORDER = ['EC', 'Cart', 'Law', 'Fire'];
+  const activeUnitTypeTab = unitTypeTabs.find((t) => t.id === activeUnitTypeTabId) ?? unitTypeTabs[0];
+  const filteredUnits = (units ?? []).filter((u) => {
+    if (activeUnitTypeTab.types) {
+      const key = u.unit_type || 'Unspecified';
+      if (!activeUnitTypeTab.types.includes(key)) return false;
+    }
+    if (unitStatusFilter === 'all') return true;
+    const isAssigned = assignmentByUnitId.has(u.id);
+    return unitStatusFilter === 'assigned' ? isAssigned : !isAssigned;
+  });
+  const sortedUnits = [...filteredUnits].sort((a, b) => {
+    const aRank = a.unit_type ? UNIT_TYPE_ORDER.indexOf(a.unit_type) : UNIT_TYPE_ORDER.length;
+    const bRank = b.unit_type ? UNIT_TYPE_ORDER.indexOf(b.unit_type) : UNIT_TYPE_ORDER.length;
+    if (aRank !== bRank) return aRank - bRank;
+    const aAssigned = assignmentByUnitId.has(a.id) ? 0 : 1;
+    const bAssigned = assignmentByUnitId.has(b.id) ? 0 : 1;
+    if (aAssigned !== bAssigned) return aAssigned - bAssigned;
+    return a.label.localeCompare(b.label);
+  });
+  const unitGroups = sortedUnits.reduce((acc, u) => {
+    const key = u.unit_type || 'Unspecified';
+    (acc[key] ??= []).push(u);
+    return acc;
+  }, {});
+  const unitGroupOrder = [...UNIT_TYPE_ORDER, 'Unspecified'].filter((key) => unitGroups[key]?.length);
 
   const selectedUnit = selectedUnitId ? unitById.get(selectedUnitId) : null;
 
@@ -166,25 +252,127 @@ export default function Dashboard({ event, staffName, isAdmin, canViewReports, o
           <div className="column">
             <div className="column-header">
               <h2>Units</h2>
-              <span className="column-count">{units?.length ?? 0}</span>
+              <span className="column-count">{sortedUnits.length}</span>
             </div>
             <p className="drag-hint">Drag an available unit onto an incident to assign it.</p>
+            <div className="admin-tabs" style={{ margin: '4px 0 8px', flexWrap: 'wrap' }}>
+              {unitTypeTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  className={`admin-tab ${activeUnitTypeTabId === tab.id ? 'active' : ''}`}
+                  onClick={() => setActiveUnitTypeTabId(tab.id)}
+                  title={tab.types ? tab.types.join(', ') : 'All unit types'}
+                >
+                  {tab.name}
+                  {tab.id !== 'all' && (
+                    <span
+                      role="button"
+                      aria-label={`Delete ${tab.name} tab`}
+                      style={{ marginLeft: 6, opacity: 0.6 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteUnitTypeTab(tab.id);
+                      }}
+                    >
+                      x
+                    </span>
+                  )}
+                </button>
+              ))}
+              <button className="admin-tab" onClick={() => setAddingUnitTypeTab((v) => !v)}>
+                + Tab
+              </button>
+            </div>
+
+            {addingUnitTypeTab && (
+              <form className="admin-form-row" onSubmit={handleSaveUnitTypeTab} style={{ marginBottom: 8 }}>
+                <div className="admin-form-field">
+                  <label>Tab name</label>
+                  <input
+                    className="field-input"
+                    value={newTabName}
+                    onChange={(e) => setNewTabName(e.target.value)}
+                    placeholder="e.g. Medical"
+                  />
+                </div>
+                <div className="admin-form-field">
+                  <label>Unit types</label>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    {UNIT_TYPE_OPTIONS.map((type) => (
+                      <label key={type} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <input
+                          type="checkbox"
+                          checked={newTabTypes.includes(type)}
+                          onChange={() => toggleNewTabType(type)}
+                        />
+                        {type}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <button className="button button-primary" type="submit">
+                  Save tab
+                </button>
+                <button
+                  className="button"
+                  type="button"
+                  onClick={() => {
+                    setAddingUnitTypeTab(false);
+                    setNewTabName('');
+                    setNewTabTypes([]);
+                  }}
+                >
+                  Cancel
+                </button>
+              </form>
+            )}
+
+            <div className="admin-form-field" style={{ padding: '0 0 8px' }}>
+              <label>Show</label>
+              <select
+                className="field-select"
+                value={unitStatusFilter}
+                onChange={(e) => setUnitStatusFilter(e.target.value)}
+              >
+                <option value="all">All units</option>
+                <option value="available">Available only</option>
+                <option value="assigned">Assigned only</option>
+              </select>
+            </div>
             <div className="column-body">
               {units === null && <p className="empty-state">Loading…</p>}
               {units?.length === 0 && <p className="empty-state">No units set up for this event yet.</p>}
-              {units?.map((unit) => {
-                const assignment = assignmentByUnitId.get(unit.id);
-                const assignedIncident = assignment ? incidentById.get(assignment.incident_id) : null;
-                return (
-                  <UnitRow
-                    key={unit.id}
-                    unit={unit}
-                    assignedIncident={assignedIncident}
-                    onDragStart={handleUnitDragStart}
-                    onClick={() => setSelectedUnitId(unit.id)}
-                  />
-                );
-              })}
+              {units?.length > 0 && sortedUnits.length === 0 && (
+                <p className="empty-state">No units match this filter.</p>
+              )}
+              {unitGroupOrder.map((type) => (
+                <div key={type}>
+                  <p
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      opacity: 0.65,
+                      textTransform: 'uppercase',
+                      margin: '8px 0 4px',
+                    }}
+                  >
+                    {type} ({unitGroups[type].length})
+                  </p>
+                  {unitGroups[type].map((unit) => {
+                    const assignment = assignmentByUnitId.get(unit.id);
+                    const assignedIncident = assignment ? incidentById.get(assignment.incident_id) : null;
+                    return (
+                      <UnitRow
+                        key={unit.id}
+                        unit={unit}
+                        assignedIncident={assignedIncident}
+                        onDragStart={handleUnitDragStart}
+                        onClick={() => setSelectedUnitId(unit.id)}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
             </div>
           </div>
 
